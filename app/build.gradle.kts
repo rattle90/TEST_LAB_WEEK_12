@@ -43,6 +43,7 @@ dependencies {
     implementation(libs.glide)
     implementation(libs.retrofit)
     implementation(libs.converter.moshi)
+    implementation(libs.moshi.kotlin)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
     kapt(libs.moshi.kotlin.codegen)
