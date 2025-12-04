@@ -3,11 +3,15 @@ package com.example.test_lab_week_12
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Lifecycle // <-- BARU
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope // <-- BARU
+import androidx.lifecycle.repeatOnLifecycle // <-- BARU
 import androidx.recyclerview.widget.RecyclerView
 import com.example.test_lab_week_12.model.Movie
 import com.google.android.material.snackbar.Snackbar
-import java.util.Calendar
+// Hapus import java.util.Calendar (Karena logic sudah pindah ke ViewModel)
+import kotlinx.coroutines.launch // <-- BARU
 
 class MainActivity : AppCompatActivity() {
     private val movieAdapter by lazy {
@@ -33,22 +37,26 @@ class MainActivity : AppCompatActivity() {
                 }
             }) [MovieViewModel::class.java]
 
-        movieViewModel.popularMovies.observe (this) { popularMovies ->
-            val currentYear = Calendar.getInstance().get(Calendar.YEAR).toString()
-            movieAdapter.addMovies (
-                popularMovies
-                    .filter { movie ->
-                        // Filter: Aman dari null & mulai dengan tahun saat ini
-                        movie.releaseDate?.startsWith(currentYear) == true
+        // Mengganti LiveData.observe() dengan Flow.collect()
+        lifecycleScope.launch {
+            repeatOnLifecycle (Lifecycle.State.STARTED) {
+                // 1. Collect Movie Flow
+                launch {
+                    movieViewModel.popularMovies.collect { movies ->
+                        // Movies yang dikumpulkan sudah di filter dan sort di ViewModel
+                        movieAdapter.addMovies (movies)
                     }
-                    // Sort: Diurutkan menurun berdasarkan popularitas
-                    .sortedByDescending { it.popularity }
-            )
-        }
-
-        movieViewModel.error.observe(this) { error ->
-            if (error.isNotEmpty()) {
-                Snackbar.make (recyclerView, error, Snackbar.LENGTH_LONG).show()
+                }
+                // 2. Collect Error Flow
+                launch {
+                    movieViewModel.error.collect { error ->
+                        if (error.isNotEmpty()) {
+                            Snackbar.make(
+                                recyclerView, error, Snackbar.LENGTH_LONG
+                            ).show()
+                        }
+                    }
+                }
             }
         }
     }
